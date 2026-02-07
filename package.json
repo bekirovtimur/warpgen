@@ -1,0 +1,17 @@
+{
+  "name": "warpgen",
+  "version": "1.0.0",
+  "description": "Simple AWG15 (Amnezia WireGuard 1.5) Configuration Generator",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel deploy"
+  },
+  "dependencies": {
+    "tweetnacl": "^1.0.3"
+  },
+  "engines": {
+    "node": "18.x"
+  }
+}
