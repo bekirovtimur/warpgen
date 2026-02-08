@@ -154,7 +154,7 @@ class Awg15Service {
     this.cloudflareClient = new CloudflareWarpClient();
   }
 
-  async generateConfig() {
+  async generateConfig(customEndpoint) {
     try {
       // Генерация ключей
       const keyPair = CryptoUtils.generateKeyPair();
@@ -175,7 +175,7 @@ class Awg15Service {
         publicKey: peer.public_key,
         clientIPv4: interfaceConfig.addresses.v4,
         clientIPv6: interfaceConfig.addresses.v6,
-        endpoint: Awg15ConfigBuilder.DEFAULT_ENDPOINT,
+        endpoint: customEndpoint || Awg15ConfigBuilder.DEFAULT_ENDPOINT,
       });
 
       return {
@@ -212,11 +212,12 @@ export default async function handler(req, res) {
   }
 
   try {
+    const { endpoint } = req.body || {};
     const service = new Awg15Service();
-    const result = await service.generateConfig();
+    const result = await service.generateConfig(endpoint);
     
-    return res.status(200).json({ 
-      success: true, 
+    return res.status(200).json({
+      success: true,
       config: result.config,
       configName: result.configName,
     });
