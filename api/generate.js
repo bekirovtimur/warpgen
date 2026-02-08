@@ -141,6 +141,7 @@ class Awg15ConfigBuilder {
       '[Peer]',
       `PublicKey = ${publicKey}`,
       'AllowedIPs = 0.0.0.0/0, ::/0',
+      'PersistentKeepalive = 25',
       `Endpoint = ${endpoint || this.DEFAULT_ENDPOINT}`,
     ].join('\n');
   }
