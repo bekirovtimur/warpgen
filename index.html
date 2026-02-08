@@ -194,7 +194,7 @@
             cursor: pointer;
             transition: all 0.2s ease;
             width: 100%;
-            margin-bottom: 32px;
+            margin-bottom: 16px;
         }
 
         .btn-generate:hover:not(:disabled) {
@@ -377,7 +377,20 @@
             margin-top: 20px;
             font-size: 14px;
         }
+
+        .captcha-container {
+            margin-bottom: 24px;
+            min-height: 65px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .captcha-container .cf-turnstile {
+            margin: 0 auto;
+        }
     </style>
+    <!-- Cloudflare Turnstile CAPTCHA -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 <body>
     <div class="container">
@@ -410,7 +423,17 @@
             </select>
         </div>
 
-        <button class="btn-generate" id="generateBtn" onclick="generateConfig()">
+        <div class="captcha-container">
+            <div class="cf-turnstile"
+                 data-sitekey="0x4AAAAAACZVF7fSY2iWTqB_"
+                 data-callback="onCaptchaSuccess"
+                 data-expired-callback="onCaptchaExpired"
+                 data-theme="dark"
+                 data-size="normal">
+            </div>
+        </div>
+
+        <button class="btn-generate" id="generateBtn" onclick="generateConfig()" disabled>
             Получить конфигурацию
         </button>
 
@@ -466,6 +489,29 @@
         let currentConfig = '';
         let configName = 'awg15.conf';
         let endpointsData = [];
+        let captchaToken = null;
+
+        // Callback при успешном прохождении капчи
+        function onCaptchaSuccess(token) {
+            captchaToken = token;
+            document.getElementById('generateBtn').disabled = false;
+        }
+
+        // Callback при истечении срока капчи
+        function onCaptchaExpired() {
+            captchaToken = null;
+            document.getElementById('generateBtn').disabled = true;
+        }
+
+        // Сброс капчи для повторного прохождения
+        function resetCaptcha() {
+            captchaToken = null;
+            document.getElementById('generateBtn').disabled = true;
+            // Перезагружаем виджет капчи
+            if (typeof turnstile !== 'undefined') {
+                turnstile.reset();
+            }
+        }
 
         // Загрузка endpoints при загрузке страницы
         async function loadEndpoints() {
@@ -500,6 +546,13 @@
             const resultDiv = document.getElementById('result');
             const endpointSelect = document.getElementById('endpointSelect');
 
+            // Проверяем, что проверка пройдена
+            if (!captchaToken) {
+                errorDiv.textContent = 'Подтвердите, что вы человек';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
             // Сброс состояния
             errorDiv.style.display = 'none';
             resultDiv.classList.remove('visible');
@@ -515,7 +568,8 @@
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        endpoint: endpointSelect.value
+                        endpoint: endpointSelect.value,
+                        captchaToken: captchaToken
                     }),
                 });
 
@@ -532,11 +586,15 @@
                 document.getElementById('configPreview').textContent = currentConfig;
                 resultDiv.classList.add('visible');
 
+                // Сброс проверки для следующего использования
+                resetCaptcha();
+
             } catch (error) {
                 errorDiv.textContent = error.message;
                 errorDiv.style.display = 'block';
+                // Сброс проверки при ошибке
+                resetCaptcha();
             } finally {
-                btn.disabled = false;
                 btn.classList.remove('loading');
             }
         }

@@ -197,6 +197,41 @@ const corsHeaders = {
   'Content-Type': 'application/json',
 };
 
+/**
+ * Верификация токена Cloudflare Turnstile
+ */
+async function verifyTurnstileToken(token) {
+  const secretKey = process.env.TURNSTILE_SECRET_KEY;
+  
+  if (!secretKey) {
+    console.warn('TURNSTILE_SECRET_KEY не установлен, пропускаю проверку');
+    return true;
+  }
+  
+  if (!token) {
+    return false;
+  }
+  
+  try {
+    const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        secret: secretKey,
+        response: token,
+      }),
+    });
+    
+    const data = await response.json();
+    return data.success === true;
+  } catch (error) {
+    console.error('Ошибка проверки Turnstile:', error);
+    return false;
+  }
+}
+
 // Обработчик POST запроса
 export default async function handler(req, res) {
   // Обработка CORS preflight
@@ -212,7 +247,17 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { endpoint } = req.body || {};
+    const { endpoint, captchaToken } = req.body || {};
+    
+    // Проверка CAPTCHA
+    const isHuman = await verifyTurnstileToken(captchaToken);
+    if (!isHuman) {
+      return res.status(403).json({
+        success: false,
+        message: 'Проверка не пройдена. Пожалуйста, попробуйте снова.'
+      });
+    }
+    
     const service = new Awg15Service();
     const result = await service.generateConfig(endpoint);
     
@@ -223,9 +268,9 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error('API Error:', error);
-    return res.status(500).json({ 
-      success: false, 
-      message: `Ошибка: ${error.message}` 
+    return res.status(500).json({
+      success: false,
+      message: `Ошибка: ${error.message}`
     });
   }
 }
