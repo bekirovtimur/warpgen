@@ -30,6 +30,13 @@
             width: 100%;
             text-align: center;
             border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: filter 0.4s ease;
+        }
+
+        .container.blurred {
+            filter: blur(12px);
+            pointer-events: none;
+            user-select: none;
         }
 
         .logo {
@@ -406,12 +413,184 @@
         .captcha-container .cf-turnstile {
             margin: 0 auto;
         }
+
+        /* Password Modal Styles */
+        .password-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(10, 10, 15, 0.85);
+            backdrop-filter: blur(4px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.4s ease, visibility 0.4s ease;
+        }
+
+        .password-overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .password-modal {
+            background: #111118;
+            border-radius: 24px;
+            padding: 40px;
+            max-width: 420px;
+            width: 90%;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: modalSlideIn 0.4s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .password-modal h2 {
+            color: #fff;
+            font-size: 22px;
+            margin-bottom: 24px;
+            font-weight: 600;
+        }
+
+        .password-input-wrapper {
+            position: relative;
+            margin-bottom: 16px;
+        }
+
+        .password-input {
+            width: 100%;
+            padding: 16px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: #fff;
+            font-size: 16px;
+            text-align: center;
+            letter-spacing: 2px;
+            transition: all 0.2s ease;
+        }
+
+        .password-input:focus {
+            outline: none;
+            border-color: #00d96a;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .password-input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+            letter-spacing: normal;
+        }
+
+        .password-input.error {
+            border-color: #ff6b6b;
+            animation: shake 0.4s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-5px); }
+            40%, 80% { transform: translateX(5px); }
+        }
+
+        .password-error {
+            color: #ff6b6b;
+            font-size: 13px;
+            margin-bottom: 16px;
+            min-height: 20px;
+        }
+
+        .btn-submit-password {
+            background: #00d96a;
+            color: #000;
+            border: none;
+            padding: 16px 32px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 100%;
+        }
+
+        .btn-submit-password:hover:not(:disabled) {
+            background: #00e673;
+            transform: translateY(-1px);
+        }
+
+        .btn-submit-password:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-submit-password.loading {
+            position: relative;
+            color: transparent;
+        }
+
+        .btn-submit-password.loading::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            top: 50%;
+            left: 50%;
+            margin-left: -10px;
+            margin-top: -10px;
+            border: 2px solid #000;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spinner 0.8s linear infinite;
+        }
+
+        .password-hint {
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 12px;
+            margin-top: 20px;
+            line-height: 1.5;
+        }
     </style>
     <!-- Cloudflare Turnstile CAPTCHA -->
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 <body>
-    <div class="container">
+    <!-- Password Protection Overlay -->
+    <div class="password-overlay" id="passwordOverlay">
+        <div class="password-modal">
+            <h2>🔒 Введите ваш пароль</h2>
+            <div class="password-input-wrapper">
+                <input
+                    type="password"
+                    class="password-input"
+                    id="passwordInput"
+                    placeholder="••••••••"
+                    autocomplete="off"
+                >
+            </div>
+            <div class="password-error" id="passwordError"></div>
+            <button class="btn-submit-password" id="submitPasswordBtn" onclick="submitPassword()">
+                Войти
+            </button>
+            <p class="password-hint">
+                Для сброса или восстановления пароля обратитесь к лицу, предоставившему вам данную ссылку.
+            </p>
+        </div>
+    </div>
+
+    <div class="container" id="mainContainer">
         <div class="logo">
             <img src="img/warp-plus.webp" alt="Cloudflare WARP Logo">
         </div>
@@ -521,6 +700,81 @@
         let configName = 'awg15.conf';
         let endpointsData = [];
         let captchaToken = null;
+        let isAuthenticated = false;
+
+        // Password protection
+        const passwordOverlay = document.getElementById('passwordOverlay');
+        const mainContainer = document.getElementById('mainContainer');
+        const passwordInput = document.getElementById('passwordInput');
+        const passwordError = document.getElementById('passwordError');
+        const submitPasswordBtn = document.getElementById('submitPasswordBtn');
+
+        // Focus on password input on load
+        window.addEventListener('load', () => {
+            mainContainer.classList.add('blurred');
+            passwordInput.focus();
+        });
+
+        // Handle Enter key in password input
+        passwordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                submitPassword();
+            }
+        });
+
+        async function submitPassword() {
+            const password = passwordInput.value.trim();
+
+            if (!password) {
+                showPasswordError('Введите пароль');
+                return;
+            }
+
+            // Set loading state
+            submitPasswordBtn.disabled = true;
+            submitPasswordBtn.classList.add('loading');
+            passwordError.textContent = '';
+            passwordInput.classList.remove('error');
+
+            try {
+                const response = await fetch('/api/auth', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ password }),
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Successful authentication
+                    isAuthenticated = true;
+                    passwordOverlay.classList.add('hidden');
+                    mainContainer.classList.remove('blurred');
+                    showToast('Добро пожаловать!');
+                } else {
+                    showPasswordError(data.message || 'Неверный пароль');
+                    passwordInput.classList.add('error');
+                    passwordInput.value = '';
+                    passwordInput.focus();
+                }
+            } catch (error) {
+                console.error('Auth error:', error);
+                showPasswordError('Ошибка соединения. Попробуйте снова.');
+            } finally {
+                submitPasswordBtn.disabled = false;
+                submitPasswordBtn.classList.remove('loading');
+            }
+        }
+
+        function showPasswordError(message) {
+            passwordError.textContent = message;
+            passwordInput.classList.add('error');
+            setTimeout(() => {
+                passwordInput.classList.remove('error');
+            }, 400);
+        }
 
         // Callback при успешном прохождении капчи
         function onCaptchaSuccess(token) {
