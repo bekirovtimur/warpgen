@@ -6,6 +6,11 @@
       "endpoint": "engage.cloudflareclient.com:4500"
     },
     {
+      "id": "russia",
+      "name": "🇷🇺 Россия",
+      "endpoint": "ru.pool.warp.ignorelist.com:4500"
+    },
+    {
       "id": "germany",
       "name": "🇩🇪 Германия",
       "endpoint": "de.pool.warp.ignorelist.com:4500"
