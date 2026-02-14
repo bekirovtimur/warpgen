@@ -2,8 +2,8 @@
   "endpoints": [
     {
       "id": "default",
-      "name": "По умолчанию",
-      "endpoint": "engage.cloudflareclient.com:4500"
+      "name": "🌐 Авто",
+      "endpoint": "auto.pool.warp.ignorelist.com:4500"
     },
     {
       "id": "russia",
