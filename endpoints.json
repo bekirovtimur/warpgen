@@ -3,22 +3,22 @@
     {
       "id": "default",
       "name": "🌐 Авто",
-      "endpoint": "auto.pool.warp.ignorelist.com:4500"
+      "endpoint": "auto.cdn.rutube.videolinks.ru:4500"
     },
     {
       "id": "russia",
       "name": "🇷🇺 Россия",
-      "endpoint": "ru.pool.warp.ignorelist.com:4500"
+      "endpoint": "ru.cdn.rutube.videolinks.ru:443"
     },
     {
       "id": "germany",
       "name": "🇩🇪 Германия",
-      "endpoint": "de.pool.warp.ignorelist.com:4500"
+      "endpoint": "de.cdn.rutube.videolinks.ru:443"
     },
     {
       "id": "finland",
       "name": "🇫🇮 Финляндия",
-      "endpoint": "fi.pool.warp.ignorelist.com:4500"
+      "endpoint": "fi.cdn.rutube.videolinks.ru:443"
     }
   ]
 }
